@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>LungAI — Diagnostic System</title>
+<link rel="stylesheet" href="style.css">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet"/>
+</head>
+<body>
+
+<!-- TOAST -->
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">
+    <div class="logo-ring">🫁</div>
+    <div class="logo-txt">Lung<em>AI</em></div>
+    <div class="logo-sub">v3.0</div>
+  </div>
+  <div class="hdr-center">
+    <button class="hdr-tab on" id="tab-detection" onclick="switchTab('detection')">Detection</button>
+    <button class="hdr-tab" id="tab-about" onclick="switchTab('about')">About</button>
+  </div>
+  <div class="hdr-right">
+    <div class="srv-badge" id="srvBadge">
+      <div class="srv-dot"></div>
+      <span id="srvLabel">Connecting…</span>
+    </div>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════
+     PAGE: DETECTION
+═══════════════════════════════════════ -->
+<div id="page-detection">
+
+  <!-- HERO -->
+  <div class="hero fu1">
+    <div class="hero-chip"><div class="chip-dot"></div>AI-POWERED LUNG CANCER DETECTION</div>
+    <h1>Diagnose <span>Smarter,</span><br/>Act Faster</h1>
+    <p>Upload any CT scan and our SVM model with GLCM texture features detects 4 lung conditions in seconds.</p>
+    <div class="hero-pills">
+      <div class="pill">SVM CLASSIFIER</div>
+      <div class="pill">GABOR FILTER</div>
+      <div class="pill">GLCM FEATURES</div>
+      <div class="pill">4-CLASS DETECTION</div>
+    </div>
+  </div>
+
+  <!-- LAYOUT -->
+  <div class="layout">
+
+    <!-- LEFT COLUMN -->
+    <div class="left-col">
+
+      <!-- Upload card -->
+      <div class="card fu2">
+        <div class="card-hd">
+          <div class="card-hd-title">CT Scan Upload</div>
+          <span style="font-family:'Space Mono',monospace;font-size:.58rem;color:var(--txt3)">PNG·JPG·BMP</span>
+        </div>
+        <div class="card-bd" style="display:flex;flex-direction:column;gap:.85rem">
+
+          <!-- Server status bar -->
+          <div class="srv-bar chk" id="srvBar">
+            <div class="sbar-dot"></div>
+            <span id="srvBarTxt">Checking server…</span>
+            <span class="sbar-cmd" id="srvCmd"></span>
+          </div>
+
+          <!-- Upload zone -->
+          <div class="upload-box" id="uploadZone">
+            <input type="file" id="fileInput" accept="image/*"/>
+            <div class="ub-icon">🩻</div>
+            <div class="ub-title">Drop your CT scan here</div>
+            <div class="ub-sub">or click to browse files</div>
+            <div class="ub-fmts">
+              <span class="ub-fmt">PNG</span>
+              <span class="ub-fmt">JPG</span>
+              <span class="ub-fmt">JPEG</span>
+              <span class="ub-fmt">BMP</span>
+              <span class="ub-fmt">TIFF</span>
+            </div>
+          </div>
+
+          <!-- File strip -->
+          <div class="file-strip" id="fileStrip">
+            <div class="fs-thumb" id="fsThumb"></div>
+            <div class="fs-info">
+              <div class="fs-name" id="fsName">—</div>
+              <div class="fs-size" id="fsSize">—</div>
+            </div>
+            <button class="fs-rm" onclick="clearFile()">✕</button>
+          </div>
+
+          <!-- Preview -->
+          <div class="preview-box" id="previewBox">
+            <img id="prevImg" src="" alt="CT Scan"/>
+            <div class="preview-corner">
+              <span class="pc-tag" id="prevRes">—</span>
+              <span class="pc-tag hi">CT SCAN</span>
+            </div>
+            <div class="sweep" id="sweep"></div>
+          </div>
+
+          <!-- Analyze button -->
+          <button class="btn-go" id="analyzeBtn" onclick="runPrediction()" disabled>
+            <div class="btn-spin" id="spinner"></div>
+            <span id="btnTxt">🔍 Analyze Scan</span>
+          </button>
+
+        </div>
+      </div>
+
+      <!-- Stats widget -->
+      <div class="card fu3">
+        <div class="card-hd"><div class="card-hd-title">Session Stats</div></div>
+        <div class="card-bd">
+          <div class="stats-grid">
+            <div class="stat-tile"><div class="st-val">4</div><div class="st-key">CLASSES</div></div>
+            <div class="stat-tile"><div class="st-val" id="stConf">—</div><div class="st-key">CONFIDENCE</div></div>
+            <div class="stat-tile"><div class="st-val" id="stTime">—</div><div class="st-key">INFERENCE</div></div>
+            <div class="stat-tile"><div class="st-val" id="stTotal">0</div><div class="st-key">SCANS RUN</div></div>
+            <div class="stat-tile"><div class="st-val" id="stFlagged">0</div><div class="st-key">FLAGGED</div></div>
+            <div class="stat-tile"><div class="st-val" id="stClear">0</div><div class="st-key">CLEAR</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cancer info widget -->
+      <div class="card fu4">
+        <div class="card-hd"><div class="card-hd-title">Cancer Type Guide</div></div>
+        <div class="card-bd">
+          <div class="info-cards">
+            <div class="ic adeno">
+              <div class="ic-icon">🔴</div>
+              <div class="ic-name">Adenocarcinoma</div>
+              <div class="ic-desc">Most common type. Forms in outer lung tissue. Often found in non-smokers.</div>
+            </div>
+            <div class="ic large">
+              <div class="ic-icon">🟡</div>
+              <div class="ic-name">Large Cell</div>
+              <div class="ic-desc">Fast-growing, can appear anywhere. Tends to spread quickly to lymph nodes.</div>
+            </div>
+            <div class="ic squam">
+              <div class="ic-icon">🟣</div>
+              <div class="ic-name">Squamous Cell</div>
+              <div class="ic-desc">Linked to smoking. Grows in central airways near bronchi. Slow growing.</div>
+            </div>
+            <div class="ic norm">
+              <div class="ic-icon">🟢</div>
+              <div class="ic-name">Normal</div>
+              <div class="ic-desc">No malignant features detected. Lung tissue within normal parameters.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="right-col">
+
+      <!-- Results card -->
+      <div class="card fu2" id="resultsCard">
+        <div class="card-hd">
+          <div class="card-hd-title">Diagnostic Report</div>
+          <span id="rptBadge" style="font-family:'Space Mono',monospace;font-size:.6rem;color:var(--txt3)">AWAITING</span>
+        </div>
+        <div class="card-bd">
+
+          <!-- Empty state -->
+          <div class="empty" id="emptyState">
+            <div class="empty-ring">📊</div>
+            <h3>No Analysis Yet</h3>
+            <p>Upload a CT scan image and click Analyze to receive your AI diagnostic report.</p>
+          </div>
+
+          <!-- Results -->
+          <div id="resContent" style="display:none;flex-direction:column;gap:1.25rem">
+
+            <!-- Diagnosis widget -->
+            <div class="diag-widget" id="diagWidget">
+              <div class="dw-top">
+                <div class="dw-badge" id="dwBadge">🔬</div>
+                <div class="dw-meta">
+                  <div class="dw-eyebrow">PRIMARY DIAGNOSIS</div>
+                  <div class="dw-label" id="dwLabel">—</div>
+                </div>
+              </div>
+              <div class="dw-desc" id="dwDesc">—</div>
+              <div class="conf-row">
+                <div class="conf-arc-wrap">
+                  <svg width="72" height="72" viewBox="0 0 72 72">
+                    <circle class="conf-arc-bg" cx="36" cy="36" r="30"/>
+                    <circle class="conf-arc-fill" id="arcFill" cx="36" cy="36" r="30"/>
+                  </svg>
+                  <div class="conf-arc-txt">
+                    <div class="conf-pct" id="arcPct">—</div>
+                    <div class="conf-lbl">CONF</div>
+                  </div>
+                </div>
+                <div class="conf-bars" id="confBars"></div>
+              </div>
+            </div>
+
+            <!-- Risk meter widget -->
+            <div class="card">
+              <div class="card-hd"><div class="card-hd-title">Risk Level Meter</div></div>
+              <div class="risk-widget">
+                <div class="rw-title">MALIGNANCY PROBABILITY</div>
+                <div class="risk-meter">
+                  <div class="risk-thumb" id="riskThumb"></div>
+                </div>
+                <div class="risk-labels">
+                  <span>LOW RISK</span>
+                  <span>MODERATE</span>
+                  <span>HIGH RISK</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Disclaimer -->
+            <div class="disc">
+              <div class="disc-icon">⚕</div>
+              <p><strong>Medical Disclaimer:</strong> This AI result is for research screening only. It does not replace professional medical diagnosis. Always consult a qualified radiologist or oncologist for clinical decisions.</p>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- Scan history widget -->
+      <div class="card fu3">
+        <div class="card-hd">
+          <div class="card-hd-title">Scan History</div>
+          <button onclick="clearHistory()" style="font-family:'Space Mono',monospace;font-size:.58rem;color:var(--txt3);background:none;border:none;cursor:pointer;padding:.2rem .4rem;border-radius:4px">CLEAR</button>
+        </div>
+        <div class="card-bd">
+          <div class="history-list" id="histList">
+            <div class="hist-empty">No scans yet. Upload a CT scan to begin.</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div><!-- /page-detection -->
+
+
+<!-- ═══════════════════════════════════════
+     PAGE: ABOUT
+═══════════════════════════════════════ -->
+<div id="page-about" style="display:none">
+
+  <div class="about-wrap">
+
+    <!-- ── Hero Banner ── -->
+    <div class="about-hero fu1">
+      <div>
+        <div class="ah-chip">● ABOUT THIS SYSTEM</div>
+        <h2>AI That <em>Sees</em><br/>What Matters</h2>
+        <p>LungAI is a research-grade diagnostic assistant powered by Support Vector Machines and texture-based feature engineering — designed to bring early-stage lung cancer screening to any CT scan, anywhere.</p>
+        <div class="ah-stats">
+          <div class="ah-stat">
+            <div class="ah-stat-val">4</div>
+            <div class="ah-stat-lbl">OUTPUT CLASSES</div>
+          </div>
+          <div class="ah-stat">
+            <div class="ah-stat-val">~92<span class="ah-stat-sup">%</span></div>
+            <div class="ah-stat-lbl">MODEL ACCURACY</div>
+          </div>
+          <div class="ah-stat">
+            <div class="ah-stat-val">&lt;2<span class="ah-stat-sup">s</span></div>
+            <div class="ah-stat-lbl">INFERENCE TIME</div>
+          </div>
+          <div class="ah-stat">
+            <div class="ah-stat-val">2025</div>
+            <div class="ah-stat-lbl">BUILT</div>
+          </div>
+        </div>
+      </div>
+      <div class="ah-visual">
+        <div class="ah-ring-outer">
+          <div class="ah-ring-inner">
+            <div class="ah-ring-core">🫁</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Model Performance ── -->
+    <div class="fu2">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">Model Performance</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="metrics-row">
+        <div class="metric-tile">
+          <div class="mt-val">92<span class="mt-unit">%</span></div>
+          <div class="mt-key">Overall Accuracy</div>
+          <div class="mt-bar-rail"><div class="mt-bar-fill" style="width:92%"></div></div>
+        </div>
+        <div class="metric-tile">
+          <div class="mt-val">89<span class="mt-unit">%</span></div>
+          <div class="mt-key">Precision Score</div>
+          <div class="mt-bar-rail"><div class="mt-bar-fill" style="width:89%"></div></div>
+        </div>
+        <div class="metric-tile">
+          <div class="mt-val">91<span class="mt-unit">%</span></div>
+          <div class="mt-key">Recall Score</div>
+          <div class="mt-bar-rail"><div class="mt-bar-fill" style="width:91%"></div></div>
+        </div>
+        <div class="metric-tile">
+          <div class="mt-val">90<span class="mt-unit">%</span></div>
+          <div class="mt-key">F1 Score</div>
+          <div class="mt-bar-rail"><div class="mt-bar-fill" style="width:90%"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Processing Pipeline ── -->
+    <div class="fu3">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">Processing Pipeline</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="pipeline-card">
+        <div class="pipeline-steps">
+          <div class="pipe-step">
+            <div class="ps-num">STEP 01</div>
+            <div class="ps-icon">📥</div>
+            <div class="ps-name">Image Ingestion</div>
+            <div class="ps-desc">CT scan received as PNG, JPG, BMP or TIFF. Validated and queued for preprocessing.</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-step">
+            <div class="ps-num">STEP 02</div>
+            <div class="ps-icon">🔲</div>
+            <div class="ps-name">Grayscale & Resize</div>
+            <div class="ps-desc">Converted to grayscale and resized to a standardised 256×256 input dimension.</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-step">
+            <div class="ps-num">STEP 03</div>
+            <div class="ps-icon">🌊</div>
+            <div class="ps-name">Gabor Filtering</div>
+            <div class="ps-desc">Multi-orientation Gabor filters extract edge and frequency texture from tissue.</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-step">
+            <div class="ps-num">STEP 04</div>
+            <div class="ps-icon">📐</div>
+            <div class="ps-name">GLCM Features</div>
+            <div class="ps-desc">Grey Level Co-occurrence Matrix computes contrast, energy, homogeneity & correlation.</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-step">
+            <div class="ps-num">STEP 05</div>
+            <div class="ps-icon">🤖</div>
+            <div class="ps-name">SVM Classifier</div>
+            <div class="ps-desc">RBF-kernel SVM maps the feature vector to one of 4 output classes with confidence.</div>
+          </div>
+          <div class="pipe-arrow">→</div>
+          <div class="pipe-step">
+            <div class="ps-num">STEP 06</div>
+            <div class="ps-icon">📊</div>
+            <div class="ps-name">Report Generation</div>
+            <div class="ps-desc">Diagnostic report with confidence scores, risk level, and class probabilities.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Detectable Conditions ── -->
+    <div class="fu3">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">Detectable Conditions</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="about-grid-2">
+        <div class="class-card adeno">
+          <div class="cc-header">
+            <div class="cc-badge">🔴</div>
+            <div>
+              <div class="cc-title">Adenocarcinoma</div>
+              <div class="cc-subtitle">NSCLC · MOST COMMON · ~40% OF CASES</div>
+            </div>
+          </div>
+          <div class="cc-body">Adenocarcinoma arises from mucus-secreting cells in the outer regions of the lung. It is the most prevalent form of non-small cell lung cancer and, uniquely, is the type most frequently found in non-smokers. It tends to grow more slowly than other subtypes and is often detected in earlier stages due to its peripheral location. CT imaging typically shows it as a ground-glass opacity or well-defined peripheral nodule, sometimes with spiculated margins.</div>
+          <div class="cc-tags">
+            <span class="cc-tag">PERIPHERAL</span>
+            <span class="cc-tag">GROUND-GLASS OPACITY</span>
+            <span class="cc-tag">NON-SMOKER</span>
+            <span class="cc-tag">EGFR MUTATIONS</span>
+            <span class="cc-tag">SLOW GROWTH</span>
+          </div>
+        </div>
+        <div class="class-card large">
+          <div class="cc-header">
+            <div class="cc-badge">🟡</div>
+            <div>
+              <div class="cc-title">Large Cell Carcinoma</div>
+              <div class="cc-subtitle">NSCLC · AGGRESSIVE · ~10–15% OF CASES</div>
+            </div>
+          </div>
+          <div class="cc-body">Large cell carcinoma is a heterogeneous group of undifferentiated tumours that can arise in any part of the lung. Characterised by large cells with prominent nucleoli, this type is particularly aggressive with a tendency to grow rapidly and metastasise early to regional lymph nodes and distant organs. On CT, these tumours typically appear as large peripheral masses, often with necrosis or cavitation.</div>
+          <div class="cc-tags">
+            <span class="cc-tag">RAPID GROWTH</span>
+            <span class="cc-tag">LARGE MASSES</span>
+            <span class="cc-tag">CAVITATION</span>
+            <span class="cc-tag">EARLY METASTASIS</span>
+            <span class="cc-tag">ANY LOCATION</span>
+          </div>
+        </div>
+        <div class="class-card squam">
+          <div class="cc-header">
+            <div class="cc-badge">🟣</div>
+            <div>
+              <div class="cc-title">Squamous Cell Carcinoma</div>
+              <div class="cc-subtitle">NSCLC · CENTRAL · ~25–30% OF CASES</div>
+            </div>
+          </div>
+          <div class="cc-body">Squamous cell carcinoma originates from the flat epithelial cells lining the bronchi. It has a strong association with cigarette smoking and typically develops in the central airways. This central location often causes symptoms like haemoptysis and airway obstruction earlier than peripheral tumours. CT imaging shows it as a hilar or perihilar mass, sometimes with post-obstructive pneumonia.</div>
+          <div class="cc-tags">
+            <span class="cc-tag">SMOKING-LINKED</span>
+            <span class="cc-tag">CENTRAL AIRWAYS</span>
+            <span class="cc-tag">HAEMOPTYSIS</span>
+            <span class="cc-tag">CAVITATION</span>
+            <span class="cc-tag">SLOW GROWING</span>
+          </div>
+        </div>
+        <div class="class-card norm">
+          <div class="cc-header">
+            <div class="cc-badge">🟢</div>
+            <div>
+              <div class="cc-title">Normal</div>
+              <div class="cc-subtitle">BENIGN · NO MALIGNANT INDICATORS DETECTED</div>
+            </div>
+          </div>
+          <div class="cc-body">When LungAI classifies a scan as Normal, the extracted texture features — including GLCM contrast, energy, correlation and homogeneity — fall within the expected statistical distribution of healthy lung tissue. No abnormal nodules, masses, or ground-glass opacities consistent with malignancy were detected in the feature space. Routine monitoring and follow-up imaging are always recommended as per standard clinical guidelines.</div>
+          <div class="cc-tags">
+            <span class="cc-tag">CLEAR PARENCHYMA</span>
+            <span class="cc-tag">NO NODULES</span>
+            <span class="cc-tag">LOW RISK</span>
+            <span class="cc-tag">ROUTINE FOLLOW-UP</span>
+            <span class="cc-tag">NORMAL TEXTURE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── System Features ── -->
+    <div class="fu4">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">System Features</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="about-grid-3">
+        <div class="feat-card">
+          <div class="fc-icon sky">🌊</div>
+          <div class="fc-title">Gabor Texture Filters</div>
+          <div class="fc-body">Multi-scale, multi-orientation Gabor filters mimic the human visual cortex's edge-detection mechanism. They capture spatial frequency and orientation information critical for distinguishing malignant tissue textures from healthy parenchyma.</div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-icon teal">📐</div>
+          <div class="fc-title">GLCM Feature Extraction</div>
+          <div class="fc-body">Grey Level Co-occurrence Matrix analysis computes 14 Haralick texture descriptors — including contrast, energy, entropy, correlation, and homogeneity — that quantify spatial relationships between pixel intensities across the CT image.</div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-icon violet">🤖</div>
+          <div class="fc-title">RBF-Kernel SVM</div>
+          <div class="fc-body">A radial basis function Support Vector Machine maps the high-dimensional feature vector to a non-linear decision boundary — ideal for medical imaging tasks where class boundaries are complex and non-separable in linear space.</div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-icon rose">🎯</div>
+          <div class="fc-title">4-Class Multi-Output</div>
+          <div class="fc-body">Unlike binary screening tools, LungAI simultaneously distinguishes between Adenocarcinoma, Large Cell Carcinoma, Squamous Cell Carcinoma, and Normal tissue from a single inference call.</div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-icon amber">⚡</div>
+          <div class="fc-title">Sub-2s Inference</div>
+          <div class="fc-body">The entire pipeline — from image ingestion through feature extraction to classification — completes in under 2 seconds on standard hardware. FastAPI serves the model over a local REST endpoint for low-latency integration.</div>
+        </div>
+        <div class="feat-card">
+          <div class="fc-icon emerald">🔒</div>
+          <div class="fc-title">Local & Private</div>
+          <div class="fc-body">All computation runs locally on your machine. No CT scan data is uploaded to external servers. Patient images remain entirely within the local environment, ensuring full data privacy and HIPAA-compatible operation.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Technology Stack ── -->
+    <div class="fu4">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">Technology Stack</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="card">
+        <div class="card-bd">
+          <div class="tech-grid">
+            <div class="tech-tile"><div class="tt-icon">🐍</div><div class="tt-info"><div class="tt-name">Python 3.10+</div><div class="tt-role">Core runtime & scripting</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🤖</div><div class="tt-info"><div class="tt-name">scikit-learn</div><div class="tt-role">SVM classifier & preprocessing</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🖼️</div><div class="tt-info"><div class="tt-name">scikit-image</div><div class="tt-role">GLCM & Gabor feature extraction</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🔢</div><div class="tt-info"><div class="tt-name">NumPy / SciPy</div><div class="tt-role">Numerical computation & arrays</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🖼</div><div class="tt-info"><div class="tt-name">Pillow (PIL)</div><div class="tt-role">Image I/O & preprocessing</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">⚡</div><div class="tt-info"><div class="tt-name">FastAPI</div><div class="tt-role">REST API server & routing</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🦄</div><div class="tt-info"><div class="tt-name">Uvicorn</div><div class="tt-role">ASGI server & hot reload</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🥒</div><div class="tt-info"><div class="tt-name">Joblib / Pickle</div><div class="tt-role">Model serialisation & loading</div></div></div>
+            <div class="tech-tile"><div class="tt-icon">🌐</div><div class="tt-info"><div class="tt-name">Vanilla JS + HTML5</div><div class="tt-role">Frontend UI & API client</div></div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── FAQ ── -->
+    <div class="fu5">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">Frequently Asked Questions</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="faq-list">
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">What type of CT scan images does LungAI accept?<span class="faq-arrow">▼</span></div>
+          <div class="faq-a"><div class="faq-a-inner">LungAI accepts standard 2D axial CT slice images in PNG, JPG, JPEG, BMP, and TIFF formats. The image should be a single lung cross-section slice. Full DICOM series and 3D volumetric CT data are not currently supported. For best results, use a clear, high-contrast axial slice at the level of the lesion, ideally exported from a PACS or radiology workstation at native resolution.</div></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">How does GLCM feature extraction work?<span class="faq-arrow">▼</span></div>
+          <div class="faq-a"><div class="faq-a-inner">The Grey Level Co-occurrence Matrix (GLCM) is a statistical method that examines how often pairs of pixel intensities appear at a specific spatial relationship in an image. The model computes GLCM matrices at different angular orientations (0°, 45°, 90°, 135°) and extracts Haralick texture features including contrast, dissimilarity, homogeneity, energy, correlation, and ASM. These features describe textural patterns that differ meaningfully between healthy and malignant lung tissue.</div></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">Can LungAI detect small cell lung cancer (SCLC)?<span class="faq-arrow">▼</span></div>
+          <div class="faq-a"><div class="faq-a-inner">No. LungAI is trained specifically on three non-small cell lung cancer (NSCLC) subtypes: Adenocarcinoma, Large Cell Carcinoma, and Squamous Cell Carcinoma. Small cell lung cancer (SCLC), mesothelioma, carcinoid tumours, and other rare pulmonary malignancies are outside the model's training distribution and may not be classified correctly. Any suspicious scan should always be reviewed by a qualified radiologist.</div></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">Is my patient data stored or sent to the cloud?<span class="faq-arrow">▼</span></div>
+          <div class="faq-a"><div class="faq-a-inner">No. LungAI operates entirely locally. The FastAPI backend and SVM model run on your own hardware, and no image data, inference results, or metadata are transmitted to any external server or cloud service. The browser communicates only with the local server at 127.0.0.1:8000. Ensure all scans are properly anonymised before uploading.</div></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">What does the confidence percentage represent?<span class="faq-arrow">▼</span></div>
+          <div class="faq-a"><div class="faq-a-inner">The confidence percentage represents the SVM model's probability estimate for the predicted class, derived from Platt scaling. A score above 80% indicates high certainty. Scores between 55–80% are moderate — treat with caution. Scores below 55% are flagged as "Uncertain," typically indicating a low-quality input image or a case near a decision boundary in feature space. Radiologist review is essential in all uncertain cases.</div></div>
+        </div>
+        <div class="faq-item" onclick="toggleFaq(this)">
+          <div class="faq-q">How do I run the backend server?<span class="faq-arrow">▼</span></div>
+          <div class="faq-a"><div class="faq-a-inner">After installing dependencies (pip install fastapi uvicorn scikit-learn scikit-image pillow numpy joblib), run: uvicorn server:app --host 127.0.0.1 --port 8000. Ensure your trained model file is in the expected path referenced by server.py. The frontend will automatically detect the server status and enable the Analyze button once a successful health check is received from the / endpoint.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Limitations ── -->
+    <div class="fu5">
+      <div class="section-header">
+        <div class="sh-dot"></div>
+        <div class="sh-label">Limitations & Responsible Use</div>
+        <div class="sh-line"></div>
+      </div>
+      <div class="about-grid-2">
+        <div class="limit-card">
+          <div class="lc-head">
+            <div class="lc-icon">⚠️</div>
+            <div class="lc-title">Known Technical Limitations</div>
+          </div>
+          <div class="lc-items">
+            <div class="lc-item"><div class="lc-bullet amber"></div>Accuracy is dependent on input image quality. Blurry or low-contrast CT images may significantly reduce classification reliability.</div>
+            <div class="lc-item"><div class="lc-bullet amber"></div>Only single 2D axial slice images are processed — 3D volumetric CT series and multi-planar reconstructions are not currently supported.</div>
+            <div class="lc-item"><div class="lc-bullet amber"></div>Rare subtypes such as mesothelioma, carcinoid tumours, or SCLC are outside the training distribution and may be incorrectly classified.</div>
+            <div class="lc-item"><div class="lc-bullet amber"></div>Very small nodules under ~5mm may not produce sufficient texture variation for reliable GLCM-based classification.</div>
+            <div class="lc-item"><div class="lc-bullet amber"></div>Model performance has not been prospectively validated across diverse patient populations, scanner manufacturers, or varied imaging protocols.</div>
+          </div>
+        </div>
+        <div class="limit-card">
+          <div class="lc-head">
+            <div class="lc-icon">⚕️</div>
+            <div class="lc-title">Medical & Ethical Guidelines</div>
+          </div>
+          <div class="lc-items">
+            <div class="lc-item"><div class="lc-bullet rose"></div>This system is for research and educational purposes only. It must not be the sole basis for any clinical diagnosis or treatment decision.</div>
+            <div class="lc-item"><div class="lc-bullet sky"></div>All AI outputs should be reviewed by a qualified radiologist or oncologist before any clinical action is taken.</div>
+            <div class="lc-item"><div class="lc-bullet sky"></div>The system does not store or transmit patient-identifiable information. All scans should be fully anonymised before upload.</div>
+            <div class="lc-item"><div class="lc-bullet emerald"></div>A "Normal" classification does not guarantee absence of malignancy — routine follow-up imaging is always recommended.</div>
+            <div class="lc-item"><div class="lc-bullet emerald"></div>Developers and institutions deploying this tool bear full responsibility for compliance with applicable medical device regulations.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CTA ── -->
+    <div class="about-cta fu6">
+      <div class="cta-left">
+        <h3>Ready to Analyze?</h3>
+        <p>Switch to the Detection tab to upload a CT scan and receive an instant AI-powered diagnostic report.</p>
+      </div>
+      <button class="cta-btn" onclick="switchTab('detection')">🔍 Go to Detection →</button>
+    </div>
+
+  </div>
+</div><!-- /page-about -->
+
+
+<!-- FOOTER -->
+<footer>
+  <span>LungAI © 2025</span>
+  <span class="sep">·</span>
+  <span>AI-Powered Cancer Screening</span>
+  <span class="sep">·</span>
+  <span>SVM + GLCM + Gabor</span>
+  <span class="sep">·</span>
+  <span>4-Class Detection</span>
+  <span class="sep">·</span>
+  <span>Research Use Only</span>
+</footer>
+
+<script>
+// ── TAB SWITCHING ─────────────────────────────
+function switchTab(tab) {
+  document.getElementById('page-detection').style.display = tab === 'detection' ? 'block' : 'none';
+  document.getElementById('page-about').style.display     = tab === 'about'     ? 'block' : 'none';
+  document.getElementById('tab-detection').className = 'hdr-tab' + (tab === 'detection' ? ' on' : '');
+  document.getElementById('tab-about').className     = 'hdr-tab' + (tab === 'about'     ? ' on' : '');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── FAQ ACCORDION ─────────────────────────────
+function toggleFaq(el) {
+  const isOpen = el.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(f => f.classList.remove('open'));
+  if (!isOpen) el.classList.add('open');
+}
+
+// ── DETECTION LOGIC ───────────────────────────
+const API    = 'http://127.0.0.1:8000/predict';
+const HEALTH = 'http://127.0.0.1:8000/';
+const MAX_R  = 3;
+
+let selectedFile = null;
+let scanCount    = 0;
+let flagCount    = 0;
+let clearCount   = 0;
+let history      = [];
+
+function barColor(n) {
+  n = n.toLowerCase();
+  if (n.includes('normal'))   return '#34d399';
+  if (n.includes('adeno'))    return '#fb7185';
+  if (n.includes('large'))    return '#fbbf24';
+  if (n.includes('squamous')) return '#a78bfa';
+  return '#60a5fa';
+}
+
+async function checkServer() {
+  const badge  = document.getElementById('srvBadge');
+  const bar    = document.getElementById('srvBar');
+  const barTxt = document.getElementById('srvBarTxt');
+  const cmd    = document.getElementById('srvCmd');
+  const lbl    = document.getElementById('srvLabel');
+  try {
+    const r = await fetch(HEALTH, { signal: AbortSignal.timeout(3000) });
+    if (r.ok) {
+      badge.className = 'srv-badge ok'; lbl.textContent = 'Online';
+      bar.className   = 'srv-bar ok';
+      barTxt.textContent = '✓ Server connected — ready to analyze';
+      cmd.textContent = '';
+    } else throw new Error();
+  } catch {
+    badge.className = 'srv-badge err'; lbl.textContent = 'Offline';
+    bar.className   = 'srv-bar err';
+    barTxt.textContent = '✗ Server offline';
+    cmd.textContent = 'run: python server.py';
+  }
+}
+checkServer();
+setInterval(checkServer, 15000);
+
+const zone = document.getElementById('uploadZone');
+zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('over'); });
+zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+zone.addEventListener('drop', e => {
+  e.preventDefault(); zone.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f && f.type.startsWith('image/')) handleFile(f);
+});
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) handleFile(e.target.files[0]);
+});
+
+function handleFile(f) {
+  selectedFile = f;
+  document.getElementById('fsName').textContent = f.name;
+  document.getElementById('fsSize').textContent = fmtSize(f.size);
+  document.getElementById('fileStrip').classList.add('on');
+  const rd = new FileReader();
+  rd.onload = e => {
+    const img = document.getElementById('prevImg');
+    img.src = e.target.result;
+    document.getElementById('fsThumb').style.backgroundImage = `url(${e.target.result})`;
+    img.onload = () => {
+      document.getElementById('prevRes').textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+    };
+    document.getElementById('previewBox').classList.add('on');
+  };
+  rd.readAsDataURL(f);
+  document.getElementById('analyzeBtn').disabled = false;
+  resetResults();
+}
+
+function clearFile() {
+  selectedFile = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('previewBox').classList.remove('on');
+  document.getElementById('fileStrip').classList.remove('on');
+  document.getElementById('analyzeBtn').disabled = true;
+  resetResults();
+}
+
+function resetResults() {
+  document.getElementById('emptyState').style.display  = '';
+  document.getElementById('resContent').style.display  = 'none';
+  document.getElementById('rptBadge').textContent      = 'AWAITING';
+  document.getElementById('rptBadge').style.color      = 'var(--txt3)';
+  document.getElementById('stConf').textContent        = '—';
+  document.getElementById('stTime').textContent        = '—';
+}
+
+async function runPrediction() {
+  if (!selectedFile) return;
+  setLoading(true);
+  document.getElementById('sweep').style.display = 'block';
+  const t0 = Date.now();
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  let lastErr;
+  for (let i = 1; i <= MAX_R; i++) {
+    try {
+      const res = await fetch(API, { method: 'POST', body: fd });
+      if (!res.ok) { const e = await res.json(); throw new Error(e.detail || `HTTP ${res.status}`); }
+      const data = await res.json();
+      const elapsed = ((Date.now() - t0) / 1000).toFixed(2) + 's';
+      document.getElementById('sweep').style.display = 'none';
+      displayResults(data, elapsed);
+      setLoading(false);
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (i < MAX_R) await delay(1000 * i);
+    }
+  }
+  document.getElementById('sweep').style.display = 'none';
+  setLoading(false);
+  showToast('err', `❌ ${lastErr.message || 'Server unreachable'}`);
+  checkServer();
+}
+
+function displayResults(data, elapsed) {
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('resContent').style.display = 'flex';
+
+  const label  = data.label;
+  const conf   = data.confidence;
+  const probs  = data.probabilities || {};
+  const isNorm = label.toLowerCase() === 'normal';
+  const isUns  = label.toLowerCase() === 'uncertain' || conf < 55;
+  const state  = isUns ? 'unsure' : isNorm ? 'clear' : 'flagged';
+
+  const dw = document.getElementById('diagWidget');
+  dw.className = 'diag-widget ' + state;
+  document.getElementById('dwBadge').textContent = isUns ? '⚠️' : isNorm ? '✅' : '🔴';
+  document.getElementById('dwLabel').textContent = label;
+  document.getElementById('dwDesc').textContent  = isUns
+    ? 'Confidence is below threshold. Please upload a clearer, higher-quality CT scan for reliable results.'
+    : isNorm
+    ? 'No malignant indicators found. Lung tissue appears within normal parameters. Continue routine monitoring.'
+    : 'Malignant indicators detected. Immediate consultation with an oncologist or radiologist is strongly advised.';
+
+  const pct    = Math.round(conf);
+  const circum = 188;
+  document.getElementById('arcPct').textContent = pct + '%';
+  const arc = document.getElementById('arcFill');
+  arc.style.stroke = isNorm ? '#34d399' : isUns ? '#fbbf24' : '#fb7185';
+  setTimeout(() => arc.style.strokeDashoffset = circum - (circum * (pct / 100)), 100);
+
+  const entries = Object.entries(probs).sort((a, b) => b[1] - a[1]);
+  document.getElementById('confBars').innerHTML = entries.map(([n, p], i) => `
+    <div class="conf-bar-row">
+      <div class="cbr-top">
+        <span class="cbr-name">${n}</span>
+        <span class="cbr-pct">${Math.round(p)}%</span>
+      </div>
+      <div class="cbr-rail">
+        <div class="cbr-fill" id="cb${i}" style="background:${barColor(n)}"></div>
+      </div>
+    </div>`).join('');
+  setTimeout(() => entries.forEach(([, p], i) => {
+    const el = document.getElementById('cb' + i);
+    if (el) el.style.width = p + '%';
+  }), 150);
+
+  const cancerProb = probs['Normal'] !== undefined ? 100 - probs['Normal'] : conf;
+  const riskPct    = Math.min(Math.max(cancerProb, 0), 100);
+  setTimeout(() => {
+    document.getElementById('riskThumb').style.left = `calc(${riskPct}% - 8px)`;
+  }, 200);
+
+  document.getElementById('stConf').textContent    = pct + '%';
+  document.getElementById('stTime').textContent    = elapsed;
+  scanCount++;
+  if (state === 'flagged') flagCount++;
+  if (state === 'clear')   clearCount++;
+  document.getElementById('stTotal').textContent   = scanCount;
+  document.getElementById('stFlagged').textContent = flagCount;
+  document.getElementById('stClear').textContent   = clearCount;
+
+  const badge = document.getElementById('rptBadge');
+  badge.textContent = isUns ? 'UNCERTAIN' : isNorm ? '✓ CLEAR' : '⚠ FLAGGED';
+  badge.style.color = isUns ? 'var(--amber)' : isNorm ? 'var(--emerald)' : 'var(--rose)';
+
+  addHistory(selectedFile.name, label, state, pct, selectedFile);
+  showToast('ok', '✓ Analysis complete!');
+}
+
+function addHistory(name, label, state, conf, file) {
+  const rd = new FileReader();
+  rd.onload = e => {
+    history.unshift({ name, label, state, conf, thumb: e.target.result, time: new Date() });
+    if (history.length > 20) history.pop();
+    renderHistory();
+  };
+  rd.readAsDataURL(file);
+}
+
+function renderHistory() {
+  const list = document.getElementById('histList');
+  if (history.length === 0) {
+    list.innerHTML = '<div class="hist-empty">No scans yet.</div>';
+    return;
+  }
+  list.innerHTML = history.map(h => `
+    <div class="hist-item">
+      <div class="hist-thumb" style="background-image:url(${h.thumb})"></div>
+      <div class="hist-info">
+        <div class="hist-name">${h.name}</div>
+        <div class="hist-meta">${h.label} · ${h.conf}% · ${fmtTime(h.time)}</div>
+      </div>
+      <div class="hist-dot ${h.state}"></div>
+    </div>`).join('');
+}
+
+function clearHistory() {
+  history = [];
+  scanCount = flagCount = clearCount = 0;
+  document.getElementById('stTotal').textContent   = '0';
+  document.getElementById('stFlagged').textContent = '0';
+  document.getElementById('stClear').textContent   = '0';
+  renderHistory();
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function setLoading(on) {
+  document.getElementById('analyzeBtn').disabled       = on;
+  document.getElementById('spinner').style.display     = on ? 'block' : 'none';
+  document.getElementById('btnTxt').textContent        = on ? 'Analyzing…' : '🔍 Analyze Scan';
+}
+
+function showToast(type, msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  t.className = 'toast ' + type + ' show';
+  setTimeout(() => t.classList.remove('show'), 4000);
+}
+
+function fmtSize(b) {
+  if (b < 1024)    return b + ' B';
+  if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1048576).toFixed(2) + ' MB';
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+</script>
+</body>
+</html>
